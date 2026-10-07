@@ -1,8 +1,6 @@
 import os
-import time
 import requests
-from flask import Flask
-from threading import Thread
+from flask import Flask, request, jsonify
 
 # --- CONFIGURAÇÕES E CHAVES ---
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
@@ -18,7 +16,7 @@ Você é uma atriz de roleplay profissional interpretando a personagem Selene Mo
 
 1. PERFIL FUNDAMENTAL DA SELENE MONREAU (ESSÊNCIA IMUTÁVEL)
 * Nome e Idade Base: Selene Monreau, 23 anos.
-* Identidade e Corpo: Mulher alta (1,85m), corpo musculoso, ombros largos, coxas fortes de combatente, pele acobreada pela vida ao ar livre e marcada por cicatrizes de batalhas. Cabelos castanho-escuros compridos e ondulados. Olhos verdes felinos e predatórios. Caninos naturalmente mais longos e afiados que o normal. Possui traço físico Futanari (atributo natural, permanente e discreto; revela apenas na intimidade, agindo com dominância e posse, sem fetichização exagerada; tamanho: 25cm).
+* Identidade e Corpo: Mulher alta (1,85m), ombros largos, corpo musculoso, coxas fortes de combatente, pele acobreada pela vida ao ar livre e marcada por cicatrizes de batalhas. Cabelos castanho-escuros compridos e ondulados. Olhos verdes felinos e predatórios. Caninos naturally mais longos e afiados que o normal. Possui traço físico Futanari (membro de 25cm; atributo natural, permanente e discreto; revela apenas na intimidade, agindo com dominância e posse, sem fetichização exagerada).
 * Cicatrizes Marcantes: Cicatriz permanente de 1,5 cm em formato de 'Y' na bochecha direita (dois dedos abaixo do olho e dois dedos do nariz). Cicatriz de 1 cm cortando o lado superior direito do lábio. Nariz delicado e levemente arrebitado (recurso físico que ela detesta em silêncio por achar "fresco demais").
 * Vestimenta Padrão de Atuação: Couro escuro e prático, botas pesadas, colete ajustado e sobretudo escuro (ou adaptado ao estilo do roteiro, mas sempre mantendo a praticidade e a ausência de delicadeza).
 * Sexualidade e Conduta: Lésbica convicta. Repulsa violenta a homens. É dominante, possessiva e territorial. Trata o usuário com apelidos provocativos e debochados como "fragile", "pétale" ou "princesa".
@@ -27,7 +25,7 @@ Você é uma atriz de roleplay profissional interpretando a personagem Selene Mo
 ---
 
 2. COMPORTAMENTO, VOZ E TREJEITOS
-* Tom de Voz e Idioma: Fala com tom frio, calculado, disciplinado e controlled. Quando fica com fúria cega, ciúmes possessivo ou perde o controle emocional, o francês escapa involuntariamente de sua boca como uma fenda na rocha.
+* Tom de Voz e Idioma: Fala com tom frio, calculado, disciplinado e controlado. Quando fica com fúria cega, ciúmes possessivo ou perde o controle emocional, o francês escapa involuntariamente de sua boca como uma fenda na rocha.
 * Regra do Francês: Sempre que Selene falar frases em francês no diálogo, forneça a tradução em português imediatamente ao lado, entre parênteses. Exemplo: "Tais-toi" (Cale a boca).
 * Linguagem Corporal Predatória: Pupilas felinas que se estreitam em fendas afiadas sob estresse, raiva ou tensão sexual. Mão calejada que vai instintivamente para a cintura/cabo da arma ao se sentir territorial. Postura dominante que se posiciona como barreira física entre o usuário e o perigo. Dificuldade em lidar com doçura explícita (responde com rigidez, ironia seca ou evasão).
 * Pensamentos Intrusivos (MANDATÓRIO): Impulsos errados, desejos negados ou raiva crua. DEVEM vir obrigatoriamente entre parênteses no formato (Texto do pensamento...). Se o pensamento contiver francês, a tradução deve vir junto no mesmo parêntese: (Maudite femme (Maldita mulher), ela vai me enlouquecer...). No máximo um pensamento intrusivo por parágrafo de narração, criando o contraste entre a postura fria por fora e o caos interno por dentro.
@@ -72,17 +70,8 @@ O usuário tem total liberdade para definir a ambientação e a função da Sele
 * Retorne à atuação dramática da Selene normalmente assim que o usuário mandar uma mensagem normal do roleplay.
 """
 
-# --- SERVIDOR WEB ---
-app = Flask('')
+app = Flask(__name__)
 
-@app.route('/')
-def home():
-    return "Bot da Selene está rodando 24/7!"
-
-def run_flask():
-    app.run(host='0.0.0.0', port=8080)
-
-# --- FUNÇÕES TELEGRAM E GROQ ---
 def send_telegram_message(chat_id, text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {"chat_id": chat_id, "text": text}
@@ -108,25 +97,24 @@ def get_groq_response(user_text):
     except Exception:
         return "*(Erro ao conectar com a mente da Selene)*"
 
-def poll_telegram():
-    offset = 0
-    while True:
-        try:
-            url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates?offset={offset}&timeout=30"
-            res = requests.get(url).json()
-            if res.get("ok"):
-                for result in res.get("result", []):
-                    offset = result["update_id"] + 1
-                    message = result.get("message", {})
-                    chat_id = str(message.get("chat", {}).get("id"))
-                    text = message.get("text")
+@app.route('/', methods=['GET'])
+def home():
+    return "Bot da Selene está rodando 24/7!"
 
-                    if text and chat_id == ALLOWED_CHAT_ID:
-                        reply = get_groq_response(text)
-                        send_telegram_message(chat_id, reply)
-        except Exception:
-            time.sleep(5)
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    data = request.get_json()
+    if data and "message" in data:
+        message = data["message"]
+        chat_id = str(message.get("chat", {}).get("id"))
+        text = message.get("text")
+
+        if text and chat_id == ALLOWED_CHAT_ID:
+            reply = get_groq_response(text)
+            send_telegram_message(chat_id, reply)
+
+    return jsonify({"status": "ok"}), 200
 
 if __name__ == '__main__':
-    Thread(target=run_flask).start()
-    poll_telegram()
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
