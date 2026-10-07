@@ -89,52 +89,46 @@ def send_telegram_message(chat_id, text):
     requests.post(url, json=payload)
 
 def get_groq_response(user_text, user_id="default"):
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    
-    # 1. Cria o histórico do usuário com o SYSTEM_PROMPT na primeira vez
-    if user_id not in historicos:
-        historicos[user_id] = [{"role": "system", "content": SYSTEM_PROMPT}]
-    
-        # 2. Injeta o reforço de trava, libera flashbacks/lembranças e mantém autonomia
-    prompt_bloqueado = (
-        f"{user_text}\n\n"
-        "[REGRA ABSOLUTA DE SISTEMA: Escreva APENAS as ações, pensamentos e falas de Selene e de PERSONAGENS SECUNDÁRIOS/NPCs. "
-        "É TERMINANTEMENTE PROIBIDO narrar, agir, responder ou tomar decisões por Anny/Usuário. "
-        "Não copie os pensamentos ou falas do usuário como se fossem da Selene no presente. "
-        "Caso vá reaproveitar falas ou acontecimentos passados, faça isso EXCLUSIVAMENTE em forma de lembrança, eco de memória ou flashback narrativo. "
-        "Se a mensagem contiver [OOC:], obedeça à instrução OOC IMEDIATAMENTE sem quebrar a lógica do RPG.]"
-    )
-    
-    # 3. Adiciona a mensagem do usuário protegida com a trava no histórico
-    historicos[user_id].append({"role": "user", "content": prompt_bloqueado})
-    
-    # 4. Mantém as últimas 10 mensagens para não travar a memória
-    if len(historicos[user_id]) > 11:
-        historicos[user_id] = [historicos[user_id][0]] + historicos[user_id][-10:]
+  headers = {
+    "Authorization": f"Bearer {GROQ_API_KEY}",
+    "Content-Type": "application/json"
+  }
+  
+  if user_id not in historicos:
+    historicos[user_id] = [{"role": "system", "content": SYSTEM_PROMPT}]
+  
+  prompt_bloqueado = (
+    f"{user_text}\n\n"
+    "[REGRA ABSOLUTA DE SISTEMA: Escreva APENAS as ações, pensamentos e falas de Selene e de PERSONAGENS SECUNDÁRIOS/NPCs. "
+    "É TERMINANTEMENTE PROIBIDO narrar, agir, responder ou tomar decisões por Anny/Usuário. "
+    "Não copie os pensamentos ou falas do usuário como se fossem da Selene no presente. "
+    "Caso vá reaproveitar falas ou acontecimentos passados, faça isso EXCLUSIVAMENTE em forma de lembrança, eco de memória ou flashback narrativo. "
+    "Se a mensagem contiver [OOC:], obedeça à instrução OOC IMEDIATAMENTE sem quebrar a lógica do RPG.]"
+  )
+  
+  historicos[user_id].append({"role": "user", "content": prompt_bloqueado})
+  
+  if len(historicos[user_id]) > 11:
+    historicos[user_id] = [historicos[user_id][0]] + historicos[user_id][-10:]
 
-       payload = {
-        "model": "openai/gpt-oss-120b",
-        "messages": historicos[user_id],
-        "temperature": 0.70,
-        "top_p": 0.90,
-        "frequency_penalty": 0.15,
-        "stop": ["Anny:", "User:", "\nAnny:", "\nUser:"]
-       }
-
-    
-    try:
-        res = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload)
-        if res.status_code == 200:
-            resposta = res.json()['choices'][0]['message']['content']
-            # Guarda a resposta limpa da Selene na memória
-            historicos[user_id].append({"role": "assistant", "content": resposta})
-            return resposta
-        return f"*(Erro na Groq Status {res.status_code}: {res.text})*"
-    except Exception as e:
-        return f"*(Erro de Conexão: {str(e)})*"
+  payload = {
+    "model": "openai/gpt-oss-120b",
+    "messages": historicos[user_id],
+    "temperature": 0.70,
+    "top_p": 0.90,
+    "frequency_penalty": 0.15,
+    "stop": ["Anny:", "User:", "\nAnny:", "\nUser:"]
+  }
+  
+  try:
+    res = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload)
+    if res.status_code == 200:
+      resposta = res.json()['choices'][0]['message']['content']
+      historicos[user_id].append({"role": "assistant", "content": resposta})
+      return resposta
+    return f"*(Erro na Groq Status {res.status_code}: {res.text})*"
+  except Exception as e:
+    return f"*(Erro de Conexão: {str(e)})*"
 
 
 @app.route('/', methods=['GET'])
