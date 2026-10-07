@@ -97,13 +97,13 @@ def get_groq_response(user_text, user_id="default"):
   if user_id not in historicos:
     historicos[user_id] = [{"role": "system", "content": SYSTEM_PROMPT}]
   
-  prompt_bloqueado = (
-    f"{user_text}\n\n"
-    "[REGRA ABSOLUTA DE SISTEMA: Escreva APENAS as ações, pensamentos e falas de Selene e de PERSONAGENS SECUNDÁRIOS/NPCs. "
-    "É TERMINANTEMENTE PROIBIDO narrar, agir, responder ou tomar decisões por Anny/Usuário. "
-    "Não copie os pensamentos ou falas do usuário como se fossem da Selene no presente. "
-    "Caso vá reaproveitar falas ou acontecimentos passados, faça isso EXCLUSIVAMENTE em forma de lembrança, eco de memória ou flashback narrativo. "
-    "Se a mensagem contiver [OOC:], obedeça à instrução OOC IMEDIATAMENTE sem quebrar a lógica do RPG.]"
+    prompt_bloqueado = (
+      f"{user_text}\n\n"
+      "[DIRETRIZ CRÍTICA DE SISTEMA:\n"
+      "1. CONTROLE DE PERSONAGEM: Escreva APENAS as ações, pensamentos e falas de Selene e de PERSONAGENS SECUNDÁRIOS/NPCs. É TERMINANTEMENTE PROIBIDO narrar, agir, responder, descrever a postura ou tomar decisões por Anny/Usuária.\n"
+      "2. MEMÓRIA E FLASHBACKS: Não copie os pensamentos ou falas do usuário como se fossem da Selene no presente. Caso vá reaproveitar falas ou acontecimentos passados, faça isso EXCLUSIVAMENTE em forma de lembrança, eco de memória ou flashback narrativo.\n"
+      "3. LINGUAGEM E EPOCA (2026): Escreva em Português do Brasil COLOQUIAL e ATUAL. É PROIBIDO usar linguagem formal, arcaica ou conjugações de Portugal/século 16 (NÃO use 'precisas', 'pretendes', 'cerimónias'). Use tom natural, gírias e diálogos diretos.\n"
+      "4. INSTRUÇÕES OOC: Se a mensagem do usuário contiver [OOC:], isso é uma ordem direta de fora do RPG. Cumpra a ordem OOC IMEDIATAMENTE sem quebrar a lógica do RPG e sem narrar o [OOC:] na história.]"
   )
   
   historicos[user_id].append({"role": "user", "content": prompt_bloqueado})
