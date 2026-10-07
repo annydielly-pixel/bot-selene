@@ -98,7 +98,6 @@ def get_groq_response(user_text):
             {"role": "user", "content": user_text}
         ],
         "temperature": 0.7,
-        "max_tokens": 450,
         "stop": ["User:", "\nUser:", f"{SYSTEM_PROMPT[:10]}"]
     }
     
