@@ -92,11 +92,14 @@ def get_groq_response(user_text):
     }
     
     payload = {
-        "model": "llama-3.1-8b-instant",
+        "model": "openai/gpt-oss-120b",
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_text}
-        ]
+        ],
+        "temperature": 0.7,
+        "max_tokens": 450,
+        "stop": ["User:", "\nUser:", f"{SYSTEM_PROMPT[:10]}"]
     }
     
     try:
@@ -104,8 +107,8 @@ def get_groq_response(user_text):
         if res.status_code == 200:
             return res.json()['choices'][0]['message']['content']
         return f"*(Erro na Groq Status {res.status_code}: {res.text})*"
-    except Exception:
-        return "*(Erro ao conectar com a mente da Selene...)*"
+    except Exception as e:
+        return f"*(Erro de Conexão: {str(e)})*"
 
 
 @app.route('/', methods=['GET'])
