@@ -98,11 +98,13 @@ def get_groq_response(user_text, user_id="default"):
     if user_id not in historicos:
         historicos[user_id] = [{"role": "system", "content": SYSTEM_PROMPT}]
     
-    # 2. Injeta o reforço de trava no texto que vai para a IA
+        # 2. Injeta o reforço de trava, libera flashbacks/lembranças e mantém autonomia
     prompt_bloqueado = (
         f"{user_text}\n\n"
         "[REGRA ABSOLUTA DE SISTEMA: Escreva APENAS as ações, pensamentos e falas de Selene e de PERSONAGENS SECUNDÁRIOS/NPCs. "
         "É TERMINANTEMENTE PROIBIDO narrar, agir, responder ou tomar decisões por Anny/Usuário. "
+        "Não copie os pensamentos ou falas do usuário como se fossem da Selene no presente. "
+        "Caso vá reaproveitar falas ou acontecimentos passados, faça isso EXCLUSIVAMENTE em forma de lembrança, eco de memória ou flashback narrativo. "
         "Se a mensagem contiver [OOC:], obedeça à instrução OOC IMEDIATAMENTE sem quebrar a lógica do RPG.]"
     )
     
@@ -116,7 +118,7 @@ def get_groq_response(user_text, user_id="default"):
     payload = {
         "model": "openai/gpt-oss-120b",
         "messages": historicos[user_id],
-        "temperature": 0.4,
+        "temperature": 0.6,
         "stop": ["Anny:", "User:", "\nAnny:", "\nUser:"]
     }
     
