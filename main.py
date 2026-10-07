@@ -91,7 +91,7 @@ def get_groq_response(user_text):
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "openai/gpt-oss-120b",
+        "model": "llama-3.3-70b-versatile",
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_text}
