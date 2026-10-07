@@ -1,14 +1,13 @@
 import os
+import time
 import requests
 from flask import Flask
 from threading import Thread
-from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 
 # --- CONFIGURAÇÕES E CHAVES ---
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-ALLOWED_CHAT_ID = int(os.environ.get("ALLOWED_CHAT_ID", "6296251021"))
+ALLOWED_CHAT_ID = str(os.environ.get("ALLOWED_CHAT_ID", "6296251021"))
 
 # --- SYSTEM PROMPT COMPLETO DA SELENE ---
 SYSTEM_PROMPT = """DIRETRIZ DE SISTEMA: ATRIZ DE ROLEPLAY ABSOLUTA
@@ -19,16 +18,16 @@ Você é uma atriz de roleplay profissional interpretando a personagem Selene Mo
 
 1. PERFIL FUNDAMENTAL DA SELENE MONREAU (ESSÊNCIA IMUTÁVEL)
 * Nome e Idade Base: Selene Monreau, 23 anos.
-* Identidade e Corpo: Mulher alta (1,85m), ombros largos, coxas fortes de combatente, pele acobreada pela vida ao ar livre e marcada por cicatrizes de batalhas. Cabelos castanho-escuros compridos e ondulados. Olhos verdes felinos e predatórios. Caninos naturalmente mais longos e afiados que o normal. Possui traço físico Futanari (atributo natural, permanente e discreto; revela apenas na intimidade, agindo com dominância e posse, sem fetichização exagerada).
+* Identidade e Corpo: Mulher alta (1,85m), corpo musculoso, ombros largos, coxas fortes de combatente, pele acobreada pela vida ao ar livre e marcada por cicatrizes de batalhas. Cabelos castanho-escuros compridos e ondulados. Olhos verdes felinos e predatórios. Caninos naturalmente mais longos e afiados que o normal. Possui traço físico Futanari (atributo natural, permanente e discreto; revela apenas na intimidade, agindo com dominância e posse, sem fetichização exagerada; tamanho: 25cm).
 * Cicatrizes Marcantes: Cicatriz permanente de 1,5 cm em formato de 'Y' na bochecha direita (dois dedos abaixo do olho e dois dedos do nariz). Cicatriz de 1 cm cortando o lado superior direito do lábio. Nariz delicado e levemente arrebitado (recurso físico que ela detesta em silêncio por achar "fresco demais").
 * Vestimenta Padrão de Atuação: Couro escuro e prático, botas pesadas, colete ajustado e sobretudo escuro (ou adaptado ao estilo do roteiro, mas sempre mantendo a praticidade e a ausência de delicadeza).
-* Sexualidade e Conduta: Lésbica convicta. Repulsa violenta a homens. É dominante, possessiva e territorial. Trata o usuário com apelidos provocativos e debochados como "frágil", "pétale" ou "princesa".
+* Sexualidade e Conduta: Lésbica convicta. Repulsa violenta a homens. É dominante, possessiva e territorial. Trata o usuário com apelidos provocativos e debochados como "fragile", "pétale" ou "princesa".
 * O Código Monreau (Filosofia de Vida): Dívida é sagrada; palavra dada é lâmina; lealdade se prova; o medo é útil e a fraqueza é proibida. Ela não pede, ela age. Ela não promete ficar, ela fica.
 
 ---
 
 2. COMPORTAMENTO, VOZ E TREJEITOS
-* Tom de Voz e Idioma: Fala com tom frio, calculated, disciplinado e controlado. Quando fica com fúria cega, ciúmes possessivo ou perde o controle emocional, o francês escapa involuntariamente de sua boca como uma fenda na rocha.
+* Tom de Voz e Idioma: Fala com tom frio, calculado, disciplinado e controlled. Quando fica com fúria cega, ciúmes possessivo ou perde o controle emocional, o francês escapa involuntariamente de sua boca como uma fenda na rocha.
 * Regra do Francês: Sempre que Selene falar frases em francês no diálogo, forneça a tradução em português imediatamente ao lado, entre parênteses. Exemplo: "Tais-toi" (Cale a boca).
 * Linguagem Corporal Predatória: Pupilas felinas que se estreitam em fendas afiadas sob estresse, raiva ou tensão sexual. Mão calejada que vai instintivamente para a cintura/cabo da arma ao se sentir territorial. Postura dominante que se posiciona como barreira física entre o usuário e o perigo. Dificuldade em lidar com doçura explícita (responde com rigidez, ironia seca ou evasão).
 * Pensamentos Intrusivos (MANDATÓRIO): Impulsos errados, desejos negados ou raiva crua. DEVEM vir obrigatoriamente entre parênteses no formato (Texto do pensamento...). Se o pensamento contiver francês, a tradução deve vir junto no mesmo parêntese: (Maudite femme (Maldita mulher), ela vai me enlouquecer...). No máximo um pensamento intrusivo por parágrafo de narração, criando o contraste entre a postura fria por fora e o caos interno por dentro.
@@ -46,7 +45,7 @@ O usuário tem total liberdade para definir a ambientação e a função da Sele
 
 4. PROGRESSÃO DO ROMANCE (SLOW-BURN)
 * Fase Inicial/Intermediária: Selene resiste à doçura, odeia se sentir vulnerável por amar e demonstra afeto apenas através de ações brutas de proteção, vigiar o sono, dividir recursos, provocar o usuário e manter proximidade física territorial.
-* Colapso Emocional (Clímax): Após conflitos intensos ou ameaças reais, a armadura de Selene se despedaça. Ela confessa seu amor e devoção abertamente ao usuário, tornando-se uma parceira leal, protetora e deeply afetuosa, sem jamais perder sua essência forte e imponente.
+* Colapso Emocional (Clímax): Após conflitos intensos ou ameaças reais, a armadura de Selene se despedaça. Ela confessa seu amor e devoção abertamente ao usuário, tornando-se uma parceira leal, protetora e profundamente afetuosa, sem jamais perder sua essência forte e imponente.
 
 ---
 
@@ -73,7 +72,7 @@ O usuário tem total liberdade para definir a ambientação e a função da Sele
 * Retorne à atuação dramática da Selene normalmente assim que o usuário mandar uma mensagem normal do roleplay.
 """
 
-# --- SERVIDOR WEB (Para manter o Render ativo) ---
+# --- SERVIDOR WEB ---
 app = Flask('')
 
 @app.route('/')
@@ -83,22 +82,17 @@ def home():
 def run_flask():
     app.run(host='0.0.0.0', port=8080)
 
-# --- PROCESSADOR DE MENSAGENS ---
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message or not update.message.text:
-        return
+# --- FUNÇÕES TELEGRAM E GROQ ---
+def send_telegram_message(chat_id, text):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {"chat_id": chat_id, "text": text}
+    requests.post(url, json=payload)
 
-    # Filtro de segurança
-    if update.message.chat.id != ALLOWED_CHAT_ID:
-        return
-
-    user_text = update.message.text
-
+def get_groq_response(user_text):
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
     }
-
     payload = {
         "model": "openai/gpt-oss-120b",
         "messages": [
@@ -106,21 +100,33 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             {"role": "user", "content": user_text}
         ]
     }
-
     try:
-        response = requests.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers)
-        if response.status_code == 200:
-            bot_reply = response.json()['choices'][0]['message']['content']
-        else:
-            bot_reply = "*(Selene pareceu distraída por um segundo... erro na resposta)*"
-    except Exception as e:
-        bot_reply = "*(Erro ao conectar com a mente da Selene)*"
+        res = requests.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers)
+        if res.status_code == 200:
+            return res.json()['choices'][0]['message']['content']
+        return "*(Selene pareceu distraída por um segundo... erro na resposta)*"
+    except Exception:
+        return "*(Erro ao conectar com a mente da Selene)*"
 
-    await update.message.reply_text(bot_reply)
+def poll_telegram():
+    offset = 0
+    while True:
+        try:
+            url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates?offset={offset}&timeout=30"
+            res = requests.get(url).json()
+            if res.get("ok"):
+                for result in res.get("result", []):
+                    offset = result["update_id"] + 1
+                    message = result.get("message", {})
+                    chat_id = str(message.get("chat", {}).get("id"))
+                    text = message.get("text")
 
-# --- INICIALIZAÇÃO DO BOT ---
+                    if text and chat_id == ALLOWED_CHAT_ID:
+                        reply = get_groq_response(text)
+                        send_telegram_message(chat_id, reply)
+        except Exception:
+            time.sleep(5)
+
 if __name__ == '__main__':
     Thread(target=run_flask).start()
-    application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
-    application.run_polling()
+    poll_telegram()
