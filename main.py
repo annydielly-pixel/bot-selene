@@ -7,6 +7,9 @@ TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 ALLOWED_CHAT_ID = str(os.environ.get("ALLOWED_CHAT_ID", "6296251021"))
 
+# Guarda o histórico do Telegram para não esquecer o contexto
+historicos = {}
+
 # --- SYSTEM PROMPT COMPLETO DA SELENE ---
 SYSTEM_PROMPT = """
 REGRAS ABSOLUTAS E INVIOLÁVEIS:
@@ -85,35 +88,45 @@ def send_telegram_message(chat_id, text):
     payload = {"chat_id": chat_id, "text": text}
     requests.post(url, json=payload)
 
-def get_groq_response(user_text):
+def get_groq_response(user_text, user_id="default"):
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
     }
     
-    # Reforço de segurança injetado diretamente no prompt
+    # 1. Cria o histórico do usuário com o SYSTEM_PROMPT na primeira vez
+    if user_id not in historicos:
+        historicos[user_id] = [{"role": "system", "content": SYSTEM_PROMPT}]
+    
+    # 2. Injeta o reforço de trava no texto que vai para a IA
     prompt_bloqueado = (
         f"{user_text}\n\n"
         "[REGRA ABSOLUTA DE SISTEMA: Escreva APENAS as ações, pensamentos e falas de Selene e de PERSONAGENS SECUNDÁRIOS/NPCs. "
-        "É TERMINANTEMENTE PROIBIDO narrar, agir, responder ou tomar decisões por Anny/Usuário (a protagonista do usuário). "
+        "É TERMINANTEMENTE PROIBIDO narrar, agir, responder ou tomar decisões por Anny/Usuário. "
         "Se a mensagem contiver [OOC:], obedeça à instrução OOC IMEDIATAMENTE sem quebrar a lógica do RPG.]"
     )
+    
+    # 3. Adiciona a mensagem do usuário protegida com a trava no histórico
+    historicos[user_id].append({"role": "user", "content": prompt_bloqueado})
+    
+    # 4. Mantém as últimas 10 mensagens para não travar a memória
+    if len(historicos[user_id]) > 11:
+        historicos[user_id] = [historicos[user_id][0]] + historicos[user_id][-10:]
 
     payload = {
         "model": "openai/gpt-oss-120b",
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt_bloqueado}
-        ],
-        "temperature": 0.5,
+        "messages": historicos[user_id],
+        "temperature": 0.4,
         "stop": ["Anny:", "User:", "\nAnny:", "\nUser:"]
     }
-
-   
+    
     try:
         res = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload)
         if res.status_code == 200:
-            return res.json()['choices'][0]['message']['content']
+            resposta = res.json()['choices'][0]['message']['content']
+            # Guarda a resposta limpa da Selene na memória
+            historicos[user_id].append({"role": "assistant", "content": resposta})
+            return resposta
         return f"*(Erro na Groq Status {res.status_code}: {res.text})*"
     except Exception as e:
         return f"*(Erro de Conexão: {str(e)})*"
