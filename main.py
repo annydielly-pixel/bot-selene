@@ -115,7 +115,7 @@ def get_groq_response(user_text, user_id="default"):
     if len(historicos[user_id]) > 11:
         historicos[user_id] = [historicos[user_id][0]] + historicos[user_id][-10:]
 
-      payload = {
+   payload = {
         "model": "openai/gpt-oss-120b",
         "messages": historicos[user_id],
         "temperature": 0.70,
