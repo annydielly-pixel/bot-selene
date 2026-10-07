@@ -103,7 +103,7 @@ def get_groq_response(user_text):
         res = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload)
         if res.status_code == 200:
             return res.json()['choices'][0]['message']['content']
-        return "*(Selene pareceu distraída por um segundo... erro na resposta)*"
+        return f"*(Erro na Groq Status {res.status_code}: {res.text})*"
     except Exception:
         return "*(Erro ao conectar com a mente da Selene...)*"
 
