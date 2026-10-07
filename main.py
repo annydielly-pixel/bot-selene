@@ -90,20 +90,24 @@ def get_groq_response(user_text):
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
     }
+    
     payload = {
         "model": "llama-3.3-70b-versatile",
         "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_text}
+    {"role": "system", "content": SYSTEM_PROMPT},
+    {"role": "user", "content": user_text} 
         ]
+]
     }
+    
     try:
-        res = requests.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers)
+        res = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload)
         if res.status_code == 200:
             return res.json()['choices'][0]['message']['content']
         return "*(Selene pareceu distraída por um segundo... erro na resposta)*"
     except Exception:
-        return "*(Erro ao conectar com a mente da Selene)*"
+        return "*(Erro ao conectar com a mente da Selene...)*"
+
 
 @app.route('/', methods=['GET'])
 def home():
