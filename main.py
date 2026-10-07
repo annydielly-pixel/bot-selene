@@ -106,9 +106,10 @@ def get_groq_response(user_text):
             {"role": "user", "content": prompt_bloqueado}
         ],
         "temperature": 0.5,
-        "stop": ["Anny:", "User:", "\nAnny:", "\nUser:", "[Anny]", "[USER]"]
+        "stop": ["Anny:", "User:", "\nAnny:", "\nUser:"]
     }
-    
+
+   
     try:
         res = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload)
         if res.status_code == 200:
