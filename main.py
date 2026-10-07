@@ -92,7 +92,7 @@ def get_groq_response(user_text):
     }
     
     payload = {
-        "model": "llama-3.3-70b-versatile",
+        "model": "llama3-70b-8192",
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_text}
@@ -103,9 +103,9 @@ def get_groq_response(user_text):
         res = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload)
         if res.status_code == 200:
             return res.json()['choices'][0]['message']['content']
-        return f"*(Erro na Groq Status {res.status_code}: {res.text})*"
-    except Exception as e:
-        return f"*(Erro de Conexão: {str(e)})*"
+        return "*(Selene pareceu distraída por um segundo... erro na resposta)*"
+    except Exception:
+        return "*(Erro ao conectar com a mente da Selene...)*"
 
 
 @app.route('/', methods=['GET'])
