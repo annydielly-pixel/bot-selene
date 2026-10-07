@@ -91,14 +91,22 @@ def get_groq_response(user_text):
         "Content-Type": "application/json"
     }
     
+    # Reforço de segurança injetado diretamente no prompt
+    prompt_bloqueado = (
+        f"{user_text}\n\n"
+        "[REGRA ABSOLUTA DE SISTEMA: Escreva APENAS as ações, pensamentos e falas de Selene e de PERSONAGENS SECUNDÁRIOS/NPCs. "
+        "É TERMINANTEMENTE PROIBIDO narrar, agir, responder ou tomar decisões por Anny/Usuário (a protagonista do usuário). "
+        "Se a mensagem contiver [OOC:], obedeça à instrução OOC IMEDIATAMENTE sem quebrar a lógica do RPG.]"
+    )
+
     payload = {
         "model": "openai/gpt-oss-120b",
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_text}
+            {"role": "user", "content": prompt_bloqueado}
         ],
-        "temperature": 0.7,
-        "stop": ["User:", "\nUser:", f"{SYSTEM_PROMPT[:10]}"]
+        "temperature": 0.5,
+        "stop": ["Anny:", "User:", "\nAnny:", "\nUser:", "[Anny]", "[USER]"]
     }
     
     try:
